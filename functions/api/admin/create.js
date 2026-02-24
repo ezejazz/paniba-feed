@@ -1,31 +1,22 @@
-function requireAccess(request) {
-  // When Access protects a route, Cloudflare can pass identity headers like:
-  // Cf-Access-Authenticated-User-Email (commonly used in Access setups) :contentReference[oaicite:3]{index=3}
-  const email = request.headers.get("Cf-Access-Authenticated-User-Email");
-  if (!email) return null;
-  return email;
-}
-
-function makeId() {
-  return crypto.randomUUID();
+function requireAccessEmail(request) {
+  // Cloudflare Access adds this header when the route is protected
+  return request.headers.get("Cf-Access-Authenticated-User-Email");
 }
 
 export async function onRequestPost({ env, request }) {
-  const email = requireAccess(request);
+  const email = requireAccessEmail(request);
   if (!email) return new Response("Forbidden (Access required)", { status: 403 });
 
   const form = await request.formData();
   const title = String(form.get("title") || "").trim();
   const body = String(form.get("body") || "").trim();
-
-  // files: <input name="images" multiple>
   const files = form.getAll("images").filter(v => v instanceof File);
 
   if (!title && !body && files.length === 0) {
     return new Response("Add text or images.", { status: 400 });
   }
 
-  const postId = makeId();
+  const postId = crypto.randomUUID();
   const createdAt = Date.now();
   const keys = [];
 
