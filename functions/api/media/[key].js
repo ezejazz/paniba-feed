@@ -1,7 +1,6 @@
 export async function onRequestGet({ env, params }) {
   const key = params.key;
   const obj = await env.MEDIA.get(key);
-
   if (!obj) return new Response("Not found", { status: 404 });
 
   const headers = new Headers();
