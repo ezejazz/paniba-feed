@@ -1,11 +1,51 @@
-// Inside your post rendering loop:
-const images = JSON.parse(post.images_json || "[]");
-let albumHtml = '<div class="album-grid" style="display:grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap:10px;">';
+<div id="feed">Loading posts...</div>
 
-images.forEach(url => {
-  albumHtml += `<img src="${url}" style="width:100%; border-radius:8px; object-fit:cover; aspect-ratio:1/1;">`;
-});
+<script>
+  async function loadFeed() {
+    const feed = document.getElementById("feed");
+    try {
+      // 1. Fetch posts from your D1 (via functions/api/posts.js)
+      const res = await fetch("/api/posts");
+      const posts = await res.json();
+      
+      feed.innerHTML = ""; // Clear loader
 
-albumHtml += '</div>';
+      posts.forEach(post => {
+        // 2. Handle the Album (images_json)
+        let images = [];
+        try {
+          images = JSON.parse(post.images_json || "[]");
+        } catch(e) { images = []; }
 
-// Insert 'albumHtml' into your post card template
+        // Create the HTML for the images
+        let albumHtml = '<div style="display:grid; grid-template-columns:repeat(auto-fit, minmax(150px,1fr)); gap:8px; margin:10px 0;">';
+        images.forEach(url => {
+          albumHtml += `<img src="${url}" style="width:100%; aspect-ratio:1/1; object-fit:cover; border-radius:12px;" onerror="this.style.display='none'">`;
+        });
+        albumHtml += '</div>';
+
+        // 3. Build the Post Card
+        const card = document.createElement("div");
+        card.className = "card"; // Matches your CSS
+        card.innerHTML = `
+          <div style="padding:16px; border-bottom:1px solid #eee;">
+            <h3 style="margin:0; color:#0b2a5b;">${post.title || 'PANIBA Post'}</h3>
+            <small style="color:#64748b;">${new Date(post.created_at).toLocaleString()}</small>
+          </div>
+          <div style="padding:16px;">
+            <p style="margin:0 0 10px;">${post.body || ''}</p>
+            ${images.length > 0 ? albumHtml : ''}
+          </div>
+          <div style="padding:12px; border-top:1px solid #eee; font-weight:bold; color:#64748b;">
+            🤍 Like &nbsp;&nbsp; 💬 Comment
+          </div>
+        `;
+        feed.appendChild(card);
+      });
+    } catch (err) {
+      feed.innerHTML = "Error loading feed: " + err.message;
+    }
+  }
+
+  loadFeed();
+</script>
