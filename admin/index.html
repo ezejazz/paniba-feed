@@ -1,37 +1,58 @@
-<!-- Update the input to allow multiple -->
-<input id="images" type="file" accept="image/*" multiple>
-
-<script>
-  const $ = (id) => document.getElementById(id);
-  
-  $("publish").addEventListener("click", async () => {
-    const status = $("status");
-    const fileInput = $("images");
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>PANIBA | Admin Album Post</title>
+  <style>
+    body{margin:0; font-family:sans-serif; background:#f4f6fb; padding:20px;}
+    .card{max-width:600px; margin:0 auto; background:#fff; padding:20px; border-radius:16px; border:1px solid #ddd;}
+    input, textarea { width:100%; margin-bottom:10px; padding:12px; border-radius:8px; border:1px solid #ccc; box-sizing:border-box; }
+    button { width:100%; padding:12px; background:#f2b705; border:none; border-radius:8px; font-weight:bold; cursor:pointer; }
+    #status { display:block; margin-top:10px; font-size:12px; font-weight:bold; text-align:center; }
+  </style>
+</head>
+<body>
+  <div class="card">
+    <h2>Create Album Post</h2>
+    <input id="title" placeholder="Post Title">
+    <textarea id="body" placeholder="Post content..." rows="4"></textarea>
     
-    if (fileInput.files.length === 0) {
-      status.textContent = "Error: Select at least one image.";
-      return;
-    }
-
-    status.textContent = "Uploading album...";
+    <label style="font-size:12px; font-weight:bold;">Select Photos (Multiple allowed):</label>
+    <input id="images" type="file" accept="image/*" multiple style="margin-top:5px;">
     
-    const fd = new FormData();
-    fd.append("title", $("title").value.trim());
-    fd.append("body", $("body").value.trim());
+    <button id="publish">PUBLISH ALBUM</button>
+    <span id="status"></span>
+    <br><a href="/" style="font-size:12px; color:#666;">View Public Feed</a>
+  </div>
+
+  <script>
+    const $ = (id) => document.getElementById(id);
     
-    // Loop through all selected files and add them to FormData
-    for (let i = 0; i < fileInput.files.length; i++) {
-      fd.append("images", fileInput.files[i]);
-    }
+    $("publish").onclick = async () => {
+      const fileInput = $("images");
+      if (fileInput.files.length === 0) return $("status").textContent = "Please select images.";
+      
+      $("status").textContent = "Uploading...";
+      const fd = new FormData();
+      fd.append("title", $("title").value);
+      fd.append("body", $("body").value);
+      
+      // Loop through all images
+      for (const file of fileInput.files) {
+        fd.append("images", file);
+      }
 
-    try {
-      const res = await fetch("/api/create", { method: "POST", body: fd });
-      if (!res.ok) throw new Error(await res.text());
-
-      status.textContent = "Album Posted Successfully!";
-      $("title").value = ""; $("body").value = ""; fileInput.value = "";
-    } catch (err) {
-      status.textContent = "Error: " + err.message;
-    }
-  });
-</script>
+      try {
+        const res = await fetch("/api/create", { method: "POST", body: fd });
+        if (!res.ok) throw new Error(await res.text());
+        
+        $("status").textContent = "Post Successful!";
+        $("title").value = ""; $("body").value = ""; fileInput.value = "";
+      } catch (err) {
+        $("status").textContent = "Error: " + err.message;
+      }
+    };
+  </script>
+</body>
+</html>
