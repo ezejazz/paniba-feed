@@ -1,51 +1,113 @@
-<div id="feed">Loading posts...</div>
-
-<script>
-  async function loadFeed() {
-    const feed = document.getElementById("feed");
-    try {
-      // 1. Fetch posts from your D1 (via functions/api/posts.js)
-      const res = await fetch("/api/posts");
-      const posts = await res.json();
-      
-      feed.innerHTML = ""; // Clear loader
-
-      posts.forEach(post => {
-        // 2. Handle the Album (images_json)
-        let images = [];
-        try {
-          images = JSON.parse(post.images_json || "[]");
-        } catch(e) { images = []; }
-
-        // Create the HTML for the images
-        let albumHtml = '<div style="display:grid; grid-template-columns:repeat(auto-fit, minmax(150px,1fr)); gap:8px; margin:10px 0;">';
-        images.forEach(url => {
-          albumHtml += `<img src="${url}" style="width:100%; aspect-ratio:1/1; object-fit:cover; border-radius:12px;" onerror="this.style.display='none'">`;
-        });
-        albumHtml += '</div>';
-
-        // 3. Build the Post Card
-        const card = document.createElement("div");
-        card.className = "card"; // Matches your CSS
-        card.innerHTML = `
-          <div style="padding:16px; border-bottom:1px solid #eee;">
-            <h3 style="margin:0; color:#0b2a5b;">${post.title || 'PANIBA Post'}</h3>
-            <small style="color:#64748b;">${new Date(post.created_at).toLocaleString()}</small>
-          </div>
-          <div style="padding:16px;">
-            <p style="margin:0 0 10px;">${post.body || ''}</p>
-            ${images.length > 0 ? albumHtml : ''}
-          </div>
-          <div style="padding:12px; border-top:1px solid #eee; font-weight:bold; color:#64748b;">
-            🤍 Like &nbsp;&nbsp; 💬 Comment
-          </div>
-        `;
-        feed.appendChild(card);
-      });
-    } catch (err) {
-      feed.innerHTML = "Error loading feed: " + err.message;
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>PANIBA Feeding Program | Social Feed</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <style>
+    /* ... (Keep all your existing CSS here) ... */
+    :root{
+      --navy:#0b2a5b; --navy2:#123b7a; --accent:#f2b705; --bg:#f4f6fb;
+      --card:#ffffff; --muted:#6b7280; --text:#0f172a;
+      --border: rgba(15, 23, 42, 0.12); --shadow: 0 14px 40px rgba(2, 6, 23, 0.10);
+      --radius: 16px; --max: 980px;
     }
-  }
+    *{box-sizing:border-box}
+    body{font-family: Inter, sans-serif; background: var(--bg); color: var(--text); margin:0;}
+    .container{width:min(var(--max), calc(100% - 32px)); margin:0 auto;}
+    .layout{display:grid; grid-template-columns: 320px 1fr; gap: 16px; padding: 16px 0;}
+    .card{background: var(--card); border: 1px solid var(--border); border-radius: var(--radius); margin-bottom:16px; overflow:hidden;}
+    .post-text{padding:16px; font-weight:600;}
+    /* Album Grid */
+    .album-grid { display: grid; gap: 4px; padding: 0 16px 16px; }
+    .album-1 { grid-template-columns: 1fr; }
+    .album-2 { grid-template-columns: 1fr 1fr; }
+    .album-3plus { grid-template-columns: 1fr 1fr; grid-template-rows: 200px 200px; }
+    .album-img { width:100%; height:300px; object-fit:cover; border-radius:8px; border:1px solid var(--border); }
+    .album-3plus .album-img:first-child { grid-row: span 2; height: 100%; }
+    .album-3plus .album-img { height: 200px; }
+  </style>
+</head>
+<body>
 
-  loadFeed();
-</script>
+  <!-- Your Topbar (Keep your existing HTML here) -->
+  <div class="topbar"><div class="container topbar-inner">...</div></div>
+
+  <div class="container">
+    <div class="layout">
+      <!-- Sidebar (Keep your existing Profile Card) -->
+      <aside class="sidebar">...</aside>
+
+      <!-- Main Feed -->
+      <main id="feed-container" class="feed">
+        <div class="card" style="padding:20px; text-align:center;">Loading PANIBA feed...</div>
+      </main>
+    </div>
+  </div>
+
+  <script>
+    async function loadFeed() {
+      const container = document.getElementById("feed-container");
+      try {
+        const res = await fetch("/api/posts");
+        if (!res.ok) throw new Error("Failed to fetch posts");
+        const posts = await res.json();
+        
+        container.innerHTML = ""; // Clear loader
+
+        posts.forEach(post => {
+          let images = [];
+          try { images = JSON.parse(post.images_json || "[]"); } catch(e) {}
+
+          // Determine grid style based on image count
+          let gridClass = "album-1";
+          if (images.length === 2) gridClass = "album-2";
+          if (images.length >= 3) gridClass = "album-3plus";
+
+          let imagesHtml = "";
+          if (images.length > 0) {
+            imagesHtml = `<div class="album-grid ${gridClass}">`;
+            // Limit to 3 images for the preview grid
+            images.slice(0, 3).forEach(url => {
+              imagesHtml += `<img src="${url}" class="album-img" loading="lazy">`;
+            });
+            imagesHtml += `</div>`;
+          }
+
+          const postDate = new Date(post.created_at).toLocaleDateString(undefined, { 
+            month: 'short', day: 'numeric', year: 'numeric' 
+          });
+
+          container.innerHTML += `
+            <div class="card post">
+              <div style="padding:16px; display:flex; gap:12px; align-items:center;">
+                <div style="width:40px; height:40px; background:var(--navy); color:#fff; border-radius:12px; display:grid; place-items:center; font-weight:900;">P</div>
+                <div>
+                  <strong style="display:block; font-size:14px; color:var(--navy);">PANIBA Feeding Program</strong>
+                  <span style="font-size:12px; color:var(--muted); font-weight:700;">${postDate}</span>
+                </div>
+              </div>
+              
+              <div class="post-text">${post.body || ""}</div>
+              
+              ${imagesHtml}
+
+              <div style="padding:12px 16px; border-top:1px solid var(--border); display:flex; gap:20px;">
+                 <button style="background:none; border:none; color:var(--muted); font-weight:800; font-size:12px; cursor:pointer;">🤍 LIKE</button>
+                 <button style="background:none; border:none; color:var(--muted); font-weight:800; font-size:12px; cursor:pointer;">💬 COMMENT</button>
+              </div>
+            </div>
+          `;
+        });
+      } catch (err) {
+        container.innerHTML = `<div class="card" style="padding:20px; color:red;">Error: ${err.message}</div>`;
+      }
+    }
+
+    loadFeed();
+  </script>
+</body>
+</html>
