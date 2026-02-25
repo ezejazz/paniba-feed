@@ -1,39 +1,32 @@
-function requireAccessEmail(request) {
-  // Cloudflare Access adds this header when the route is protected
-  return request.headers.get("Cf-Access-Authenticated-User-Email");
-}
+export async function onRequestPost(context) {
+  const { request, env } = context;
+  
+  try {
+    const formData = await request.formData();
+    const imageFile = formData.get('image'); // Make sure your HTML input name is 'image'
+    const caption = formData.get('caption') || "";
 
-export async function onRequestPost({ env, request }) {
-  const email = requireAccessEmail(request);
-  if (!email) return new Response("Forbidden (Access required)", { status: 403 });
+    if (!imageFile) return new Response("No image uploaded", { status: 400 });
 
-  const form = await request.formData();
-  const title = String(form.get("title") || "").trim();
-  const body = String(form.get("body") || "").trim();
-  const files = form.getAll("images").filter(v => v instanceof File);
+    // 1. Generate a unique filename
+    const filename = `${Date.now()}-${imageFile.name}`;
 
-  if (!title && !body && files.length === 0) {
-    return new Response("Add text or images.", { status: 400 });
-  }
-
-  const postId = crypto.randomUUID();
-  const createdAt = Date.now();
-  const keys = [];
-
-  for (const file of files) {
-    const safeName = (file.name || "image").replace(/[^\w.\-]+/g, "_");
-    const key = `posts/${postId}/${Date.now()}_${safeName}`;
-    await env.MEDIA.put(key, await file.arrayBuffer(), {
-      httpMetadata: { contentType: file.type || "application/octet-stream" }
+    // 2. Upload to R2
+    await env.MY_BUCKET.put(filename, imageFile.stream(), {
+      httpMetadata: { contentType: imageFile.type }
     });
-    keys.push(key);
+
+    // 3. Save metadata to D1
+    const imageUrl = `https://paniba.us{filename}`;
+    await env.DB.prepare(
+      "INSERT INTO posts (caption, image_url, created_at) VALUES (?, ?, ?)"
+    ).bind(caption, imageUrl, new Date().toISOString()).run();
+
+    return new Response(JSON.stringify({ success: true, url: imageUrl }), {
+      headers: { "Content-Type": "application/json" }
+    });
+
+  } catch (err) {
+    return new Response(`Upload failed: ${err.message}`, { status: 500 });
   }
-
-  await env.DB.prepare(
-    "INSERT INTO posts (id, title, body, created_at, author_email, images_json) VALUES (?, ?, ?, ?, ?, ?)"
-  )
-    .bind(postId, title, body, createdAt, email, JSON.stringify(keys))
-    .run();
-
-  return Response.json({ ok: true, id: postId });
 }
