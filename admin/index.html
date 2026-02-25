@@ -10,13 +10,11 @@
   <style>
     body{margin:0;font-family:Inter,system-ui,Arial;background:#f4f6fb;color:#0f172a}
     .wrap{max-width:720px;margin:0 auto;padding:18px}
-    .card{background:#fff;border:1px solid rgba(15,23,42,.12);border-radius:16px;padding:16px;
-      box-shadow:0 10px 26px rgba(2,6,23,.06)}
+    .card{background:#fff;border:1px solid rgba(15,23,42,.12);border-radius:16px;padding:16px;box-shadow:0 10px 26px rgba(2,6,23,.06)}
     input,textarea{width:100%;padding:12px;border-radius:14px;border:1px solid rgba(15,23,42,.12);font-weight:600;box-sizing:border-box}
     textarea{min-height:120px;resize:vertical}
     .row{display:flex;gap:10px;flex-wrap:wrap;align-items:center}
-    button{padding:10px 14px;border-radius:14px;border:1px solid rgba(15,23,42,.12);
-      background:#f2b705;font-weight:900;letter-spacing:.06em;text-transform:uppercase;font-size:12px;cursor:pointer}
+    button{padding:10px 14px;border-radius:14px;border:1px solid rgba(15,23,42,.12);background:#f2b705;font-weight:900;letter-spacing:.06em;text-transform:uppercase;font-size:12px;cursor:pointer}
     .muted{color:#6b7280;font-weight:700;font-size:12px}
   </style>
 </head>
@@ -33,7 +31,8 @@
       <textarea id="body" placeholder="Post text..."></textarea>
       <div style="height:10px"></div>
 
-      <input id="images" type="file" accept="image/*">
+      <!-- Single file input named "image" -->
+      <input id="image" type="file" accept="image/*">
       <div style="height:12px"></div>
 
       <div class="row">
@@ -49,9 +48,10 @@
     
     $("publish").addEventListener("click", async () => {
       const status = $("status");
-      const fileInput = $("images");
+      const fileInput = $("image");
       
-      if (!fileInput.files || fileInput.files.length === 0) {
+      // Basic check
+      if (!fileInput.files[0]) {
         status.textContent = "Error: Please select an image.";
         return;
       }
@@ -62,7 +62,8 @@
         const fd = new FormData();
         fd.append("title", $("title").value.trim());
         fd.append("body", $("body").value.trim());
-        // Use 'image' (singular) to match the create.js code
+        
+        // This MUST be named 'image' to match your create.js formData.get('image')
         fd.append("image", fileInput.files[0]); 
 
         const res = await fetch("/api/create", { 
@@ -75,6 +76,7 @@
           status.textContent = "Error: " + errorText;
         } else {
           status.textContent = "Successfully Posted!";
+          // Clear form after success
           $("title").value = "";
           $("body").value = "";
           fileInput.value = "";
