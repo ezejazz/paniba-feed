@@ -1,111 +1,11 @@
-<!doctype html>
-<html lang="en">
-<head>
-  <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>PANIBA | Social Feed</title>
-  <link rel="preconnect" href="https://fonts.googleapis.com">
-  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
-  <style>
-    body{margin:0;font-family:Inter,system-ui,Arial;background:#f4f6fb;color:#0f172a}
-    .wrap{max-width:920px;margin:0 auto;padding:18px}
-    header{position:sticky;top:0;background:rgba(255,255,255,.9);backdrop-filter:blur(10px);
-      border-bottom:1px solid rgba(15,23,42,.12);padding:12px 18px;z-index:20}
-    .brand{display:flex;align-items:center;justify-content:space-between;gap:12px;max-width:920px;margin:0 auto}
-    .logo{width:42px;height:42px;border-radius:14px;display:grid;place-items:center;
-      background:linear-gradient(135deg,#0b2a5b,#123b7a);color:#fff;font-weight:900}
-    .name{font-weight:900;letter-spacing:.12em;color:#0b2a5b;font-size:13px}
-    .sub{font-weight:700;font-size:13px}
-    .btn{padding:10px 14px;border-radius:14px;border:1px solid rgba(15,23,42,.12);
-      background:#fff;font-weight:800;letter-spacing:.06em;text-transform:uppercase;font-size:12px;cursor:pointer}
-    .feed{display:grid;gap:14px;margin-top:16px}
-    .card{background:#fff;border:1px solid rgba(15,23,42,.12);border-radius:16px;overflow:hidden;
-      box-shadow:0 10px 26px rgba(2,6,23,.06)}
-    .ph{padding:14px;display:flex;justify-content:space-between;gap:12px}
-    .meta strong{display:block;font-size:13px}
-    .meta span{display:block;color:#6b7280;font-weight:700;font-size:12px}
-    .body{padding:0 14px 12px}
-    .title{font-weight:900;color:#0b2a5b;margin:0 0 6px}
-    .text{margin:0;color:#1f2937;font-weight:600;white-space:pre-wrap}
-    img{width:100%;display:block;object-fit:cover;max-height:520px}
-    .actions{display:flex;gap:10px;align-items:center;padding:10px 14px 14px;border-top:1px solid rgba(15,23,42,.12)}
-    .action{padding:10px 12px;border-radius:12px;border:1px solid rgba(15,23,42,.12);background:#fff;font-weight:800}
-    .muted{color:#6b7280;font-weight:700;font-size:12px;margin-left:auto}
-  </style>
-</head>
-<body>
-  <header>
-    <div class="brand">
-      <div style="display:flex;align-items:center;gap:10px">
-        <div class="logo">P</div>
-        <div>
-          <div class="name">PANIBA</div>
-          <div class="sub">feeding program</div>
-        </div>
-      </div>
-      <a class="btn" href="/admin/">Admin</a>
-    </div>
-  </header>
+// Inside your post rendering loop:
+const images = JSON.parse(post.images_json || "[]");
+let albumHtml = '<div class="album-grid" style="display:grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap:10px;">';
 
-  <div class="wrap">
-    <div class="feed" id="feed"></div>
-    <p style="text-align:center;color:#6b7280;font-weight:700">
-      Likes/comments are visual only (no backend).
-    </p>
-  </div>
+images.forEach(url => {
+  albumHtml += `<img src="${url}" style="width:100%; border-radius:8px; object-fit:cover; aspect-ratio:1/1;">`;
+});
 
-  <script>
-    const feed = document.getElementById("feed");
-    function fmt(ts){
-      return new Date(ts).toLocaleString(undefined,{year:"numeric",month:"short",day:"2-digit",hour:"2-digit",minute:"2-digit"});
-    }
-    function escapeHtml(s){
-      return String(s??"")
-        .replaceAll("&","&amp;").replaceAll("<","&lt;").replaceAll(">","&gt;")
-        .replaceAll('"',"&quot;").replaceAll("'","&#039;");
-    }
-    async function load(){
-      feed.innerHTML = "";
-      const res = await fetch("/api/posts", { cache:"no-store" });
-      if(!res.ok){
-        const t = await res.text();
-        feed.innerHTML = `<div class="card"><div class="ph"><div class="meta"><strong>Error loading posts</strong><span>${escapeHtml(t)}</span></div></div></div>`;
-        return;
-      }
-      const posts = await res.json();
+albumHtml += '</div>';
 
-      if(!posts.length){
-        feed.innerHTML = `<div class="card"><div class="ph"><div class="meta"><strong>No posts yet</strong><span>Use the Admin portal to create your first post.</span></div></div></div>`;
-        return;
-      }
-
-      posts.forEach(p => {
-        const el = document.createElement("article");
-        el.className = "card";
-        el.innerHTML = `
-          <div class="ph">
-            <div class="meta">
-              <strong>PANIBA Feeding Program</strong>
-              <span>${fmt(p.created_at)}</span>
-            </div>
-          </div>
-          <div class="body">
-            ${p.title ? `<p class="title">${escapeHtml(p.title)}</p>` : ``}
-            ${p.body ? `<p class="text">${escapeHtml(p.body)}</p>` : ``}
-          </div>
-          ${p.images?.length ? `<img src="${p.images[0]}" alt="post image">` : ``}
-          <div class="actions">
-            <button class="action" type="button">🤍 Like</button>
-            <button class="action" type="button">💬 Comment</button>
-            <div class="muted">${(p.images?.length||0)} photos</div>
-          </div>
-        `;
-        feed.appendChild(el);
-      });
-    }
-    load();
-    setInterval(load, 15000);
-  </script>
-</body>
-</html>
+// Insert 'albumHtml' into your post card template

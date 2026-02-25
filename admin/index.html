@@ -1,91 +1,37 @@
-<!doctype html>
-<html lang="en">
-<head>
-  <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>PANIBA | Admin Post</title>
-  <link rel="preconnect" href="https://fonts.googleapis.com">
-  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com" rel="stylesheet">
-  <style>
-    body{margin:0;font-family:Inter,system-ui,Arial;background:#f4f6fb;color:#0f172a}
-    .wrap{max-width:720px;margin:0 auto;padding:18px}
-    .card{background:#fff;border:1px solid rgba(15,23,42,.12);border-radius:16px;padding:16px;box-shadow:0 10px 26px rgba(2,6,23,.06)}
-    input,textarea{width:100%;padding:12px;border-radius:14px;border:1px solid rgba(15,23,42,.12);font-weight:600;box-sizing:border-box}
-    textarea{min-height:120px;resize:vertical}
-    .row{display:flex;gap:10px;flex-wrap:wrap;align-items:center}
-    button{padding:10px 14px;border-radius:14px;border:1px solid rgba(15,23,42,.12);background:#f2b705;font-weight:900;letter-spacing:.06em;text-transform:uppercase;font-size:12px;cursor:pointer}
-    .muted{color:#6b7280;font-weight:700;font-size:12px}
-  </style>
-</head>
-<body>
-  <div class="wrap">
-    <h2 style="margin:0 0 12px;color:#0b2a5b;letter-spacing:.08em;text-transform:uppercase;">Admin: Create Post</h2>
-    <div class="card">
-      <div class="muted">Protect this page with Cloudflare Access.</div>
-      <div style="height:10px"></div>
+<!-- Update the input to allow multiple -->
+<input id="images" type="file" accept="image/*" multiple>
 
-      <input id="title" placeholder="Title (optional)">
-      <div style="height:10px"></div>
-
-      <textarea id="body" placeholder="Post text..."></textarea>
-      <div style="height:10px"></div>
-
-      <!-- Single file input named "image" -->
-      <input id="image" type="file" accept="image/*">
-      <div style="height:12px"></div>
-
-      <div class="row">
-        <button id="publish">Publish</button>
-        <a href="/" class="muted" style="text-decoration:underline">Back to feed</a>
-        <span class="muted" id="status"></span>
-      </div>
-    </div>
-  </div>
-
-  <script>
-    const $ = (id) => document.getElementById(id);
+<script>
+  const $ = (id) => document.getElementById(id);
+  
+  $("publish").addEventListener("click", async () => {
+    const status = $("status");
+    const fileInput = $("images");
     
-    $("publish").addEventListener("click", async () => {
-      const status = $("status");
-      const fileInput = $("image");
-      
-      // Basic check
-      if (!fileInput.files[0]) {
-        status.textContent = "Error: Please select an image.";
-        return;
-      }
+    if (fileInput.files.length === 0) {
+      status.textContent = "Error: Select at least one image.";
+      return;
+    }
 
-      status.textContent = "Uploading...";
-      
-      try {
-        const fd = new FormData();
-        fd.append("title", $("title").value.trim());
-        fd.append("body", $("body").value.trim());
-        
-        // This MUST be named 'image' to match your create.js formData.get('image')
-        fd.append("image", fileInput.files[0]); 
+    status.textContent = "Uploading album...";
+    
+    const fd = new FormData();
+    fd.append("title", $("title").value.trim());
+    fd.append("body", $("body").value.trim());
+    
+    // Loop through all selected files and add them to FormData
+    for (let i = 0; i < fileInput.files.length; i++) {
+      fd.append("images", fileInput.files[i]);
+    }
 
-        const res = await fetch("/api/create", { 
-          method: "POST", 
-          body: fd 
-        });
+    try {
+      const res = await fetch("/api/create", { method: "POST", body: fd });
+      if (!res.ok) throw new Error(await res.text());
 
-        if (!res.ok) {
-          const errorText = await res.text();
-          status.textContent = "Error: " + errorText;
-        } else {
-          status.textContent = "Successfully Posted!";
-          // Clear form after success
-          $("title").value = "";
-          $("body").value = "";
-          fileInput.value = "";
-        }
-        
-      } catch (err) {
-        status.textContent = "Connection Error: " + err.message;
-      }
-    });
-  </script>
-</body>
-</html>
+      status.textContent = "Album Posted Successfully!";
+      $("title").value = ""; $("body").value = ""; fileInput.value = "";
+    } catch (err) {
+      status.textContent = "Error: " + err.message;
+    }
+  });
+</script>
